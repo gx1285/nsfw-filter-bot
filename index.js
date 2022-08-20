@@ -1,11 +1,9 @@
-const { Client, TextChannel, RichEmbed } = require('discord.js')
+const { Client, TextChannel, EmbedBuilder, GatewayIntentBits } = require('discord.js')
 const { Image, createCanvas } = require('canvas')
 const { NSFWJS } = require('nsfwjs')
 
 const bot = new Client({
-  disabledEvents: [
-    'TYPING_START'
-  ]
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
 })
 
 const modelUrl = 'https://nsfwjs-model-v3.now.sh/'
@@ -16,7 +14,7 @@ bot.on('ready', async () => {
     .catch(console.error)
 })
 
-bot.on('message', (message) => {
+bot.on('messageCreate', (message) => {
   if (!(message.channel instanceof TextChannel)) return // テキストチャンネルでない場合は無視
   if (message.channel.nsfw) return // 閲覧注意のチャンネルは無視
   if (!message.attachments.size) return // 添付ファイルがない場合は無視
@@ -37,12 +35,10 @@ bot.on('message', (message) => {
         if (result.className === 'Neutral' || result.className === 'Drawing') return // 問題なければ無視
         message.delete() // 画像を削除
           .then((msg) => {
-            msg.channel.send(new RichEmbed()
+            msg.channel.send({embeds: [new EmbedBuilder()
               .setColor('RED')
               .setDescription(`${message.author.tag} が送信した画像に不適切な内容が含まれている可能性があるため削除しました。`)
-              .addField('もっとも多く含まれていた要素', result.className)
-              .addField('不適切である確率', `${Math.round(result.probability * 100)}%`)
-            )
+              .addField({name: 'もっとも多く含まれていた要素', value: result.className}, {name: '不適切である確率', value: `${Math.round(result.probability * 100)}%`})]})
           })
           .catch(console.error)
       })
